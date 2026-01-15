@@ -1,0 +1,70 @@
+// 中国联通六宫格转盘签到脚本
+const $ = new Env("联通六宫格签到");
+
+// 【1. 配置签到请求参数】
+const SIGN_URL = "https://activity.10010.com/sixPalaceGridTurntableLottery/signin/daySign";
+const REQUEST_HEADERS = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Accept": "application/json, text/plain, */*",
+    "Sec-Fetch-Site": "same-site",
+    "Priority": "u=3, i",
+    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Mode": "cors",
+    "Origin": "https://img.client.10010.com",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)  unicom{version:iphone_c@12.0801};ltst;OSVersion/26.2",
+    "Referer": "https://img.client.10010.com/",
+    "Sec-Fetch-Dest": "empty"
+};
+
+// 【2. 数据持久化 - 读取/存储 Cookie】
+// 从 LOON 持久化存储读取 Cookie，首次运行则使用抓包的 Cookie
+let COOKIE = $.getdata("UNICOM_SIGN_COOKIE");
+if (!COOKIE) {
+    COOKIE = `city=083|831|90495213|-99; tianjin_ip=0; tianjincity=38|390; GUESS_NUM=NjAwMzE4NDg=; MUT=f0505eae-14ea-4d17-b2fd-032ec28bfc5b; TOKEN_NET=UNI; TOKEN_UID=guxbWN1F+SInnCu3ZjgLFw==; TOKEN_UID_ALL=%7B%22userNick%22%3A%22JUU2JTg4JTkwJUU0JUJGJUExJUU1JUJBJTlBijl%22%2C%22phoneNum%22%3A%2218323104717%22%2C%22certNum%22%3A%22532128********0517%22%7D; TOKEN_UID_NAME=20UtdgqEbiqgBPbSJTp/0DXJiKNISnnbkJPc9r9W7oOkxX5xg14RbuR2Z+VFqjY0LLHMlhKqhLQMBUZST4icNdLfQ79qU1fAzf6W1qRdW/gajvceVC5lre/+XUkOppEbBHFCBy9EL6Eq+l8/8ot69ND8Jx6IHFazoFXRcdAZjQkVzenu3tcb6YvPFYzUgl33C8bDQd0E/rX3HxAkvflS5PtAtVXcRs+UphGQYMqyVNc=; TOKEN_UID_USER_TYPE=YzVf/HynMywjXa27KwkRig==; TOKEN_USER_NET=1; TOKEN_USER_TYPE=YzVf/HynMywjXa27KwkRig==; ecs_cook=867b99a3018bcbef5952b805a26c5896; gipgeo=83|831; mallcity=83|831; usercity=83|831; SHOP_PROV_CITY=83; cdn_area=83|831; PvSessionId=202601151359369E7F5718-8651-4189-A43F-329AB4C27AF4; c_id=652ee184312679427bdcac7a4221f3946740ecd02ba0cc9843fc713add039040; c_mobile=18323104717; c_version=iphone_c@12.0801; channel=GGPD; cw_mutual=7064d003eb3c8934e769e430ecf3d64aa2eab2e201564032ff2e99be6d9dc59139abb5242042fac2e094c645b7f80da095ed30255d9068075a269109c6d3e156; devicedId=9E7F5718-8651-4189-A43F-329AB4C27AF4; ecs_token=eyJkYXRhIjoiMTMyYzJlNGFmOTFiOWU0ZTRmMmMyMDQwOWVkNWU5NDIzMjlhZGY5NTZjMDIyZWFlMzVmZGYyMTYyN2I0ZTYzYzA1YTFmMTYxOTJkMWNlOGE4ZDEwYzVmN2ZjZDkxOTgxMDIxM2ViMmI1MTUxZmMyYWRhNzYwZmE5NzU3YTRiNWIxYjQ4ZGI3Y2MyMTdhNWZlZDZlYjdjMjhiNzE1MDZjM2NmNjdmMzBiNWRjNzZiN2U3MmY2NjgzYWU3YmU5NmUzZDdkNThmZTYzZTgyYTQ4YjAzYmFmMTI5Nzc1YWI5ZWFlYzI5YzJiY2FkOWVlMWUzYjE0ZmNjZjAwOTEzNzRmNWRiZDE5YTU1Yjk1YmUwOGMwZDY1YmUzYmQyZDZjZDg4OWU4NDUxMTc4OTJlYTc5YzA3ZWU5MDY2MDgzODg1NzM2MGNiODYyN2YwMjk2MzNiNmYxMGQxZTExNzIzYjIxM2ZiYmU4MzU4MjIyYjM0NGE5NjRhYWU2NDc2ZDkxODk0N2VjNzk2MTRkMmNkNTQxY2U4ODEwYTExOWJlMTMyZWFlOWQ2MGY3NmUzZjk3ZDgzMjQyNGRkNWRmMjliODY2NCIsInZlcnNpb24iOiIwMCJ9; enc_acc=migUopT14BhkRzUTkA8jtyL+nyXLKOxLmingA9jUKApq+Hz9MBiaHGI7qET0hH8d7Kvui7IgEO9/CoCplIH0TbQLX+tt3/mfmup298TGnj3TbE/zhfTw0Ek06SFcPHZMy07bhYWAb7+lM70iR7bnFuAE8g7FDF/eOe5Uc24Nubw=; invalid_at=cab7d3b1cdd374fa4d27ecaa4e5b234250dc113ee182ebb7234447092d09e131; login_type=06; random_login=0; t3_token=03223bfbefa5d9f603b28a661a20b50f; third_token=eyJkYXRhIjoiZGU0MDhiZjk5NGIxNTlhYzliMmI4NjgyYmUxYzk3M2MzMzNkYzg2YmUwOTgwYzAxMWMxM2ViMDI1M2M1MzZhYWZiODA3ZjYyMWVmMjNkZjFlNWEyNGJiMzQ3NjQyMTk5YWM4NzZlOWU1MmEwMmIwYmJkNjdkNGQ0M2Q5YTMzYzU1YmU0MTM4YzkwMzdjZThjYjZmZTcwZmZkYWIxOWRjOCIsInZlcnNpb24iOiIwMCJ9; u_account=18323104717; u_areaCode=; wo_family=0; d_deviceCode=9E7F5718-8651-4189-A43F-329AB4C27AF4; ecs_acc=migUopT14BhkRzUTkA8jtyL+nyXLKOxLmingA9jUKApq+Hz9MBiaHGI7qET0hH8d7Kvui7IgEO9/CoCplIH0TbQLX+tt3/mfmup298TGnj3TbE/zhfTw0Ek06SFcPHZMy07bhYWAb7+lM70iR7bnFuAE8g7FDF/eOe5Uc24Nubw=`;
+    // 首次运行，将抓包 Cookie 存入持久化存储
+    $.setdata(COOKIE, "UNICOM_SIGN_COOKIE");
+}
+// 把 Cookie 加入请求头
+REQUEST_HEADERS["Cookie"] = COOKIE;
+
+// 【3. 发送签到请求】
+$.post(SIGN_URL, "", REQUEST_HEADERS, (err, resp, data) => {
+    if (err) {
+        $.log(`签到失败：${err}`);
+        $.done();
+        return;
+    }
+
+    try {
+        const result = JSON.parse(data);
+        if (result.code === "0000") {
+            $.log(`签到成功！奖励：${result.data.redSignMessage}，连签天数：${result.data.doubleBtn.yetDays}`);
+            // 若响应头有新 Cookie，更新持久化存储（可选，视接口情况）
+            const newCookie = resp.headers["Set-Cookie"];
+            if (newCookie) {
+                $.setdata(newCookie, "UNICOM_SIGN_COOKIE");
+            }
+        } else {
+            $.log(`签到失败：${result.desc}`);
+        }
+    } catch (e) {
+        $.log(`解析响应失败：${e}`);
+    }
+    $.done();
+});
+
+// 【4. 工具函数 - 数据持久化 & 日志】
+function Env(name) {
+    this.name = name;
+    this.log = (msg) => console.log(`[${this.name}] ${msg}`);
+    this.getdata = (key) => $persistentStore.read(key);
+    this.setdata = (val, key) => $persistentStore.write(val, key);
+    this.post = (url, body, headers, callback) => $task.fetch({
+        method: "POST",
+        url: url,
+        body: body,
+        headers: headers
+    }).then(resp => callback(null, resp, resp.body), err => callback(err));
+    this.done = () => {};
+}
