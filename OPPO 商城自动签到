@@ -1,0 +1,157 @@
+/*
+OPPO 商城自动签到
+*/
+const $ = new Env("OPPO商城签到Pro");
+// 配置项
+const CONFIG = {
+    // 签到接口基础路径
+    baseUrl: "https://hd.opposhop.cn/api/cn/oapi/marketing/cumulativeSignIn",
+    // 存储键名
+    ckKey: "OPPO_SIGN_COOKIE",
+    actIdKey: "OPPO_SIGN_ACTIVITY_ID"
+};
+
+// ==================== 工具函数 ====================
+// 从响应头/请求头提取 Cookie
+function extractCookie(headers) {
+    let cookie = "";
+    if (headers["Set-Cookie"]) {
+        cookie = headers["Set-Cookie"].join("; ");
+    } else if (headers["Cookie"]) {
+        cookie = headers["Cookie"];
+    }
+    return cookie.trim();
+}
+
+// 自动获取最新 activityID
+function getLatestActivityId() {
+    return new Promise((resolve, reject) => {
+        $.get({
+            url: `${CONFIG.baseUrl}/signIn`,
+            headers: getBaseHeaders(),
+            success: (resp) => {
+                // 从响应或页面中提取 activityID，此处根据实际接口调整
+                // 示例：假设从响应头或响应体中获取
+                const actId = resp.headers["activity-id"] || "default_activity_id";
+                if (actId) {
+                    $.setData(CONFIG.actIdKey, actId);
+                    resolve(actId);
+                } else {
+                    reject("未获取到 activityID，使用缓存值");
+                }
+            },
+            error: (err) => reject(err)
+        });
+    });
+}
+
+// 获取基础请求头
+function getBaseHeaders() {
+    return {
+        "Host": "hd.opposhop.cn",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)  oppostore/406101 IOS/26.2 brand/iPhone model/iPhone17,1",
+        "constToken": "x2zNKUYMz8RFGxBBVVLCnzPbfOR8brFD@bj",
+        "s_channel": "ios_oppostore",
+        "source_type": "505",
+        "brand": "iPhone",
+        "model": "iPhone17%2C1",
+        "sa_device_id": "2548B127-D30C-4F1F-8727-56077B116F39",
+        "clientPackage": "com.oppo.store",
+        "guid": "2548B127-D30C-4F1F-8727-56077B116F39",
+        "um": "qiandaobanner",
+        "ut": "direct",
+        "us": "wode",
+        "uc": "direct",
+        "utm_source": "direct",
+        "utm_medium": "direct",
+        "utm_campaign": "direct",
+        "utm_term": "direct",
+        "utmChnlBack": "{\"bd_vid\":\"direct\"}",
+        "Referer": "https://hd.opposhop.cn/bp/b371ce270f7509f0?nightModelEnable=true&us=wode&um=qiandaobanner",
+        "Origin": "https://hd.opposhop.cn"
+    };
+}
+
+// ==================== 核心签到逻辑 ====================
+async function signIn() {
+    try {
+        // 1. 获取缓存的 CK 或抓取最新 CK
+        let cookie = $.getData(CONFIG.ckKey) || "";
+        if (!cookie) {
+            $.log("未检测到缓存 CK，开始抓取");
+            const resp = await $.get({ url: CONFIG.baseUrl, headers: getBaseHeaders() });
+            cookie = extractCookie(resp.headers);
+            if (cookie) $.setData(CONFIG.ckKey, cookie);
+        }
+
+        // 2. 获取最新 activityID
+        let actId = $.getData(CONFIG.actIdKey) || "";
+        try {
+            actId = await getLatestActivityId();
+        } catch (e) {
+            $.log(e);
+            actId = actId || "default_activity_id";
+        }
+
+        // 3. 发起签到请求
+        const signUrl = `${CONFIG.baseUrl}/signIn?activityId=${actId}`;
+        $.post({
+            url: signUrl,
+            headers: {
+                ...getBaseHeaders(),
+                "Cookie": cookie
+            },
+            body: JSON.stringify({ activityId: actId }),
+            success: (resp) => {
+                const result = JSON.parse(resp.body);
+                if (result.code === 200 && result.succeed) {
+                    $.msg($.name, "签到成功", `活动ID: ${actId}\n获得奖励: ${result.data.awardValue}`);
+                    // 签到成功后更新 CK
+                    const newCookie = extractCookie(resp.headers);
+                    if (newCookie) $.setData(CONFIG.ckKey, newCookie);
+                } else {
+                    $.msg($.name, "签到失败", result.errorMessage || "未知错误");
+                }
+            },
+            error: (err) => {
+                $.msg($.name, "请求失败", err);
+                // 请求失败时清除过期 CK
+                $.deleteData(CONFIG.ckKey);
+            }
+        });
+    } catch (e) {
+        $.msg($.name, "脚本执行异常", e.toString());
+    }
+}
+
+// ==================== Loon 环境适配 ====================
+function Env(name) {
+    this.name = name;
+    // 消息通知
+    this.msg = (title, subtitle, content) => $notification.post(title, subtitle, content);
+    // 日志输出
+    this.log = (msg) => console.log(`[${this.name}] ${msg}`);
+    // 数据持久化 - 读取
+    this.getData = (key) => $persistentStore.read(key);
+    // 数据持久化 - 写入
+    this.setData = (key, value) => $persistentStore.write(value, key);
+    // 数据持久化 - 删除
+    this.deleteData = (key) => $persistentStore.delete(key);
+    // GET 请求
+    this.get = (opts) => new Promise((resolve, reject) => {
+        $httpClient.get(opts, (err, resp, data) => {
+            if (err) reject(err);
+            else resolve({ ...resp, body: data });
+        });
+    });
+    // POST 请求
+    this.post = (opts) => $httpClient.post(opts, (err, resp, data) => {
+        if (err) opts.error(err);
+        else opts.success({ ...resp, body: data });
+    });
+}
+
+// 执行签到
+signIn();
