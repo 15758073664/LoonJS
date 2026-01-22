@@ -1,5 +1,4 @@
-//[Script]
-http-response ^https:\/\/hd\.opposhop\.cn\/api\/cn\/oapi\/.* script-path=oppo_cookie.js, requires-body=false
+//http-response ^https:\/\/hd\.opposhop\.cn\/api\/cn\/oapi\/.* script-path=oppo_cookie.js, requires-body=false
 
 // oppo_cookie.js
 const token = $request.headers["constToken"];
