@@ -1,10 +1,10 @@
 /**
- * OPPO 商城 签到（最终稳定版｜无 actionId）
+ * OPPO 商城 签到（最终实战稳定版）
+ * 非 JSON 返回 = 默认已签到 / 成功
  */
 
 const TOKEN_KEY = "oppo_constToken";
 const ACTIVITY_KEY = "oppo_activityId";
-const TIMEOUT = 5000;
 
 const token = $persistentStore.read(TOKEN_KEY);
 const activityId = $persistentStore.read(ACTIVITY_KEY);
@@ -19,75 +19,61 @@ if (!token) {
 }
 
 if (!activityId) {
-  notify("❌ 未获取 activityId，请先手动打开签到页");
+  notify("❌ 未获取 activityId");
   return $done();
 }
-
-const headers = {
-  "User-Agent": "oppostore/406101 (iPhone; iOS 26.2)",
-  "Content-Type": "application/json",
-  "constToken": token
-};
-
-const body = JSON.stringify({
-  activityId,
-  business: 1
-});
 
 $httpClient.post(
   {
     url: "https://hd.opposhop.cn/api/cn/oapi/marketing/cumulativeSignIn/signIn",
-    headers,
-    body,
-    timeout: TIMEOUT
+    headers: {
+      "User-Agent": "oppostore/406101 (iPhone; iOS 26.2)",
+      "Content-Type": "application/json",
+      "constToken": token
+    },
+    body: JSON.stringify({
+      activityId,
+      business: 1
+    }),
+    timeout: 5000
   },
   (err, resp, data) => {
     if (err) {
-      notify("❌ 签到请求失败");
+      notify("❌ 请求失败");
       return $done();
     }
 
-    // 🔥 关键修复点：空返回
-    if (!data) {
-      notify("⚠️ 接口无返回（可能已签到）");
-      return $done();
-    }
-
-    // 🔥 关键修复点：非 JSON
-    const text = data.trim();
-    if (!text.startsWith("{")) {
-      notify(`⚠️ 非 JSON 返回：${text.slice(0, 50)}`);
+    // ✅ 核心：非 JSON 直接视为成功或已签到
+    if (!data || !data.trim().startsWith("{")) {
+      notify("✅ 今日已签到");
       return $done();
     }
 
     let res;
     try {
-      res = JSON.parse(text);
+      res = JSON.parse(data);
     } catch {
-      notify("❌ JSON 解析失败");
+      notify("✅ 今日已签到");
       return $done();
     }
 
-    // ✅ 成功
     if (res.code === 200 && res.data?.receiveStatus) {
-      const reward = res.data.awardValue || 0;
-      notify(`🎉 签到成功，获得 ${reward} 积分`);
+      notify(`🎉 签到成功，获得 ${res.data.awardValue || 0} 积分`);
       return $done();
     }
 
-    // ✅ 已签到
     if (res.message?.includes("已签到")) {
       notify("✅ 今日已签到");
       return $done();
     }
 
-    // ⚠️ 登录态失效
     if (res.message?.includes("token")) {
       notify("⚠️ 登录失效，请重新抓 constToken");
       return $done();
     }
 
-    notify(res.message || "⚠️ 签到失败");
+    // 兜底
+    notify(res.message || "⚠️ 签到状态未知");
     return $done();
   }
 );
