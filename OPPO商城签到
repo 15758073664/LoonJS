@@ -27,7 +27,7 @@ $httpClient.post(
   {
     url: "https://hd.opposhop.cn/api/cn/oapi/marketing/cumulativeSignIn/signIn",
     headers: {
-      "User-Agent": "oppostore/406101 (iPhone; iOS 26.2)",
+      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)  oppostore/406101 IOS/26.2 brand/iPhone model/iPhone17,1",
       "Content-Type": "application/json",
       "constToken": token
     },
